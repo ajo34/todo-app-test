@@ -9,7 +9,7 @@ create table address (
   email varchar(255)
 )"])
 
-(jdbc/execute! ds ["
-select * from address"])
+(jdbc/execute! ds
+               ["select * from address"])
 
 (jdbc/execute! ds ["INSERT INTO address (name, email) VALUES ('Per', 'Per@gmail.com')"])
