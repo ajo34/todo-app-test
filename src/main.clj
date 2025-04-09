@@ -1,15 +1,22 @@
 (ns main)
 (require '[next.jdbc :as jdbc])
-(def db {:dbtype "h2" :dbname "example"})
-(def ds (jdbc/get-datasource db))
+;(def db {:dbtype "h2" :dbname "example"})
+;(def db "postgresql://localhost:5432/tododb")
+(clojure.core/refer 'config)
+
+
+(def ds (jdbc/get-datasource db-config))
 (jdbc/execute! ds ["
-create table address (
-  id int auto_increment primary key,
-  name varchar(32),
-  email varchar(255)
-)"])
+                    CREATE TABLE usersu (
+                    id SERIAL PRIMARY KEY,
+                    username VARCHAR(50) NOT NULL,
+                    email VARCHAR(100) UNIQUE NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                    "])
 
 (jdbc/execute! ds
-               ["select * from address"])
+               ["select * from usersu"])
 
-(jdbc/execute! ds ["INSERT INTO address (name, email) VALUES ('Per', 'Per@gmail.com')"])
+(jdbc/execute! ds ["INSERT INTO usersu (username, email) VALUES ('Per', 'Per@gmail.com')"])
+

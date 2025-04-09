@@ -4,3 +4,7 @@
 .cpcache
 .lsp
 .nrepl-port
+
+
+#config file w secret passwords n stuff
+config.clj
