@@ -1,11 +1,12 @@
-(ns main)
+(ns main
+  (:require [config :as config]))
 (require '[next.jdbc :as jdbc])
 ;(def db {:dbtype "h2" :dbname "example"})
 ;(def db "postgresql://localhost:5432/tododb")
-(clojure.core/refer 'config)
+;(clojure.core/refer 'config)
 
 
-(def ds (jdbc/get-datasource db-config))
+(def ds (jdbc/get-datasource config/db-config))
 (jdbc/execute! ds ["
                     CREATE TABLE usersu (
                     id SERIAL PRIMARY KEY,
@@ -16,7 +17,8 @@
                     "])
 
 (jdbc/execute! ds
-               ["select * from usersu"])
+               ["select * from users"])
 
-(jdbc/execute! ds ["INSERT INTO usersu (username, email) VALUES ('Per', 'Per@gmail.com')"])
+(jdbc/execute! ds ["INSERT INTO users (username, email) VALUES ('Per', 'Per@gmail.com')"])
 
+(jdbc/execute! ds ["DROP TABLE usersu"])

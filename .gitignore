@@ -8,3 +8,6 @@
 
 #config file w secret passwords n stuff
 config.clj
+
+#ClojureScript added stuff
+out
