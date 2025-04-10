@@ -1,7 +1,10 @@
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.12.0"}
-        org.postgresql/postgresql {:mvn/version "42.7.5"}
+ :deps {org.clojure/clojure               {:mvn/version "1.12.0"}
+        ;PostgreSQL
+        org.postgresql/postgresql         {:mvn/version "42.7.5"}
+        ;jdbc
         com.github.seancorfield/next.jdbc {:mvn/version "1.2.659"}
-        com.h2database/h2 {:mvn/version "2.2.224"}
-        org.clojure/clojurescript {:mvn/version "1.11.54"}}}
+        com.h2database/h2                 {:mvn/version "2.2.224"}
+        ;ClojureScript
+        org.clojure/clojurescript         {:mvn/version "1.11.54"}}}
 

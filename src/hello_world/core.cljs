@@ -2,7 +2,14 @@
 
 (println "Hello world!")
 
-(def numbers [1 2 4 5 7 43 223])
+(def box (js/document.getElementById "box"))
 
-(doseq [n numbers]
-  (println "The number is" n))
+;(set! box -innerHTML "<button>click me!</button>")
+
+(def btn (js/document.createElement "button"))
+(set! btn -innerHTML "click me!")
+(.addEventListener btn "click"
+                   (fn []
+                     (js/console.log "clicked!")))
+
+(.appendChild box (doto btn))
