@@ -2,19 +2,18 @@
   (:require [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]))
 
+
+
+
 (require '[next.jdbc :as jdbc] '[config :as config])
-;(def db {:dbtype "h2" :dbname "example"})
-;(def db "postgresql://localhost:5432/tododb")
-;(clojure.core/refer 'config)
+
 (def ds (jdbc/get-datasource config/db-config))
 
 (defn ok [body]
-  {:status 200 :body body})
-
+  {:status 200 :body body :headers {"Content-Type" "text/html"}})
 
 
 (defn greeting-for [nm]
-  (println "name " nm)
   (cond
     (= nil nm) "Hello, person!\n"
     (= "" nm) "Bad request"
@@ -29,16 +28,19 @@
 (defn respond-fetch [req]
   {:status 200
    :headers {"Content-Type" "application/json"}
-   :body (jdbc/execute! ds ["SELECT * FROM users"])})
+   :body (first (jdbc/execute! ds ["SELECT * FROM users"]))})
+
+
 
 (map :users/username (jdbc/execute! ds ["SELECT * FROM users"]))
-
+1
 (def routes
   (route/expand-routes
    #{["/greet" :get respond-hello :route-name :greet]
      ["/fet" :get respond-fetch :route-name :fet]}))
 
-(def service-map {::http/routes routes
+(def service-map {::http/resource-path "public"
+                  ::http/routes routes
                   ::http/type :jetty
                   ::http/port 8890})
 
@@ -62,7 +64,7 @@
   (start-dev))
 (restart)
 
-
+1
 ;jdbc stuff
 (comment
 

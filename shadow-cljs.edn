@@ -1,0 +1,5 @@
+{:deps true
+ :source-paths ["src"]
+ :builds {:frontend {:target :browser
+                     :modules {:main {:init-fn hello-world.core/init}}
+                     :devtools {:watch-dir "public"}}}}
