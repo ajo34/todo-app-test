@@ -1,6 +1,7 @@
 (ns main
   (:require [io.pedestal.http :as http]
-            [io.pedestal.http.route :as route]))
+            [io.pedestal.http.route :as route]
+            [shadow.cljs.devtools.api :as shadow]))
 
 
 
@@ -32,19 +33,47 @@
 
 
 
+(defn res-html [req]
+  {:status 200
+   :headers {"Content-Type" "text/html"}
+   :body (slurp "index.html")})
+
+
+(defn js-handler [req]
+  (let [resource (get-in req [:path-params :resource])
+        path (str "out/" resource)
+        file (java.io.File. path)]
+    (println "Serving file:" path)
+    (try
+      (if (.exists file)
+        {:status 200
+         :headers {"Content-Type" "application/javascript"}
+         :body (slurp file)}
+        {:status 404 :body "Not found"})
+      (catch Exception e
+        (println "Error reading file:" (.getMessage e))
+        {:status 500
+         :body "Internal server error"}))))
+
+
 (map :users/username (jdbc/execute! ds ["SELECT * FROM users"]))
-1
+
 (def routes
   (route/expand-routes
    #{["/greet" :get respond-hello :route-name :greet]
-     ["/fet" :get respond-fetch :route-name :fet]}))
+     ["/fet" :get respond-fetch :route-name :fet]
+     ["/html" :get res-html :route-name :html]
+     ["/out/*resource" :get js-handler :route-name :static-files]}))
 
-(def service-map {::http/resource-path "public"
-                  ::http/routes routes
+(def service-map {::http/routes routes
                   ::http/type :jetty
-                  ::http/port 8890})
+                  ::http/port 8890
+                  ;secure headers should be defined before prod
+                  ::http/secure-headers nil})
+
 
 (defn start []
+  (shadow/watch :frontend)
   (http/start (http/create-server service-map)))
 
 

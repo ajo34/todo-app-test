@@ -1,5 +1,9 @@
 {:deps true
  :source-paths ["src"]
+ :dev-http {8585 {:root "."
+                  :host "0.0.0.0"}}
  :builds {:frontend {:target :browser
+                     :output-dir "out/hello_world"
+                     :asset-path "out/hello_world"
                      :modules {:main {:init-fn hello-world.core/init}}
                      :devtools {:watch-dir "public"}}}}

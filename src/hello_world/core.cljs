@@ -10,6 +10,8 @@
 (set! btn -innerHTML "click me!")
 (.addEventListener btn "click"
                    (fn []
-                     (js/console.log "clicked!")))
+                     (println "clicked")
+                     (js/console.log "clucked!")
+                     (js/console.log "clacked!")))
 
 (.appendChild box (doto btn))

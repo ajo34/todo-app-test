@@ -11,5 +11,4 @@ config.clj
 
 #ClojureScript added stuff
 out
-
 .shadow-cljs
