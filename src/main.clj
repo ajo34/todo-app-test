@@ -1,21 +1,20 @@
 (ns main
   (:require [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
-            [io.pedestal.http.ring-middlewares :as ring-middlewares]))
+            [shadow.cljs.devtools.api :as shadow]))
+
+
+
 
 (require '[next.jdbc :as jdbc] '[config :as config])
-;(def db {:dbtype "h2" :dbname "example"})
-;(def db "postgresql://localhost:5432/tododb")
-;(clojure.core/refer 'config)
+
 (def ds (jdbc/get-datasource config/db-config))
 
 (defn ok [body]
-  {:status 200 :body body})
-
+  {:status 200 :body body :headers {"Content-Type" "text/html"}})
 
 
 (defn greeting-for [nm]
-  (println "name " nm)
   (cond
     (= nil nm) "Hello, person!\n"
     (= "" nm) "Bad request"
@@ -54,7 +53,6 @@
         {:status 500
          :body "Internal server error"}))))
 
-
 (map :users/username (jdbc/execute! ds ["SELECT * FROM users"]))
 
 (def routes
@@ -70,7 +68,9 @@
                   ;secure headers should be defined before prod
                   ::http/secure-headers nil})
 
+
 (defn start []
+  (shadow/watch :frontend)
   (http/start (http/create-server service-map)))
 
 
@@ -78,6 +78,7 @@
 (defonce server (atom nil))
 
 (defn start-dev []
+  (shadow/watch :frontend)
   (reset! server
           (http/start (http/create-server (assoc service-map
                                                  ::http/join? false)))))
@@ -90,7 +91,7 @@
   (start-dev))
 (restart)
 
-
+1
 ;jdbc stuff
 (comment
 

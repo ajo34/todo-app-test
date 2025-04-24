@@ -1,4 +1,7 @@
-(ns hello-world.core)
+(ns clojs.core)
+
+(defn init []
+  (js/console.log "running"))
 
 (println "Hello world!")
 
@@ -10,7 +13,7 @@
 (set! btn -innerHTML "click me!")
 (.addEventListener btn "click"
                    (fn []
-                     (println "clicked")
+                     (println "clocked")
                      (js/console.log "clucked!")
                      (js/console.log "clacked!")))
 
