@@ -1,4 +1,0 @@
-2025-04-08 15:28:48.366797+02:00 jdbc[3]: exception
-org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "ADRESS" not found; SQL statement:
-
-select * from adress [42102-224]

@@ -1,12 +1,11 @@
 (ns main
   (:require [io.pedestal.http :as http]
-            [io.pedestal.http.route :as route]
-            ;[shadow.cljs.devtools.api :as shadow]
-            ))
+            [io.pedestal.http.route :as route]))
 
 
 
-(require '[next.jdbc :as jdbc] '[config :as config])
+(require '[next.jdbc :as jdbc]
+         '[config :as config])
 
 (def ds (jdbc/get-datasource config/db-config))
 
@@ -27,13 +26,11 @@
     (ok resp)))
 
 (defn respond-fetch [req]
-  (println req)
   {:status 200
    :headers {"Content-Type" "application/json"}
    :body (jdbc/execute! ds ["SELECT * FROM users"])})
 
 (defn res-html [req]
-  (println req)
   {:status 200
    :headers {"Content-Type" "text/html"}
    :body (slurp "public/index.html")})
@@ -73,16 +70,13 @@
                   ::http/secure-headers nil})
 
 
-(defn start []
-  ;(shadow/watch :frontend)
-  (http/start (http/create-server service-map)))
+
 
 
 ;for interactive development
 (defonce server (atom nil))
 
 (defn start-dev []
-  ;(shadow/watch :frontend)
   (reset! server
           (http/start (http/create-server (assoc service-map
                                                  ::http/join? false)))))
