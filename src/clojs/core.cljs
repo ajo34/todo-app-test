@@ -14,7 +14,6 @@
 (.addEventListener btn "click"
                    (fn []
                      (println "clocked")
-                     (js/console.log "clucked!")
                      (js/console.log "clacked!")))
 
 (.appendChild box (doto btn))

@@ -1,8 +1,8 @@
 (ns main
   (:require [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
-            [shadow.cljs.devtools.api :as shadow]))
-
+            ;[shadow.cljs.devtools.api :as shadow]
+            ))
 
 
 
@@ -27,19 +27,20 @@
     (ok resp)))
 
 (defn respond-fetch [req]
+  (println req)
   {:status 200
    :headers {"Content-Type" "application/json"}
    :body (jdbc/execute! ds ["SELECT * FROM users"])})
 
 (defn res-html [req]
+  (println req)
   {:status 200
    :headers {"Content-Type" "text/html"}
-   :body (slurp "index.html")})
+   :body (slurp "public/index.html")})
 
 
 (defn js-handler [req]
-  (let [resource (get-in req [:path-params :resource])
-        path (str "out/" resource)
+  (let [path "public/js/main.js"
         file (java.io.File. path)]
     (println "Serving file:" path)
     (try
@@ -60,17 +61,20 @@
    #{["/greet" :get respond-hello :route-name :greet]
      ["/fet" :get respond-fetch :route-name :fet]
      ["/html" :get res-html :route-name :html]
-     ["/out/*resource" :get js-handler :route-name :static-files]}))
+     ["/h" :get (fn [request] {:status 200 :body "Hello Pedestal"}) :route-name :h]
+     ["/js/*" :get js-handler :route-name :static-files]}))
+
 
 (def service-map {::http/routes routes
                   ::http/type :jetty
                   ::http/port 8890
+                  ::http/host "0.0.0.0"
                   ;secure headers should be defined before prod
                   ::http/secure-headers nil})
 
 
 (defn start []
-  (shadow/watch :frontend)
+  ;(shadow/watch :frontend)
   (http/start (http/create-server service-map)))
 
 
@@ -78,7 +82,7 @@
 (defonce server (atom nil))
 
 (defn start-dev []
-  (shadow/watch :frontend)
+  ;(shadow/watch :frontend)
   (reset! server
           (http/start (http/create-server (assoc service-map
                                                  ::http/join? false)))))
@@ -91,7 +95,6 @@
   (start-dev))
 (restart)
 
-1
 ;jdbc stuff
 (comment
 
