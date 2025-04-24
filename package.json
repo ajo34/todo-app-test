@@ -1,0 +1,15 @@
+{
+  "name": "todo-app-test",
+  "version": "1.0.0",
+  "description": "This is a project that will contain a simple to-do list style application made in Clojure and the clojure environment. This will serve as a way for me to learn how to use clojure in a fullstack setting with some relevant libraries as well as using deps.edn to set up my project and using PostgreSQL as my database.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "shadow-cljs": "^3.0.0"
+  }
+}

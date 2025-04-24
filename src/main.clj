@@ -81,6 +81,7 @@
 (defonce server (atom nil))
 
 (defn start-dev []
+  (shadow/watch :frontend)
   (reset! server
           (http/start (http/create-server (assoc service-map
                                                  ::http/join? false)))))

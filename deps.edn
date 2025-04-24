@@ -11,5 +11,7 @@
         io.pedestal/pedestal.jetty        {:mvn/version "0.7.2"}
         org.slf4j/slf4j-simple            {:mvn/version "2.0.10"}
         ;shadow-cljs
-        thheller/shadow-cljs {:mvn/version "2.28.23"}}}
+        thheller/shadow-cljs {:mvn/version "2.28.23"}}
+ :aliases
+ {:shadow {:main-opts ["-m" "shadow.cljs.devtools.cli"]}}}
 

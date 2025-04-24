@@ -12,3 +12,8 @@ config.clj
 #ClojureScript added stuff
 out
 .shadow-cljs
+public/js
+shadow-cljs-edn.txt
+
+#npm
+node_modules
