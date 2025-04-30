@@ -70,7 +70,8 @@
                   ::http/secure-headers nil})
 
 
-
+(doseq [[[a b] [c d]] (map list (sorted-map :1 1 :2 2) (sorted-map :3 3 :4 4))]
+  (prn (* b d)))
 
 
 ;for interactive development

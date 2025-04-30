@@ -1,8 +1,10 @@
-(ns clojs.core)
+(ns clojs.core
+  (:require [replicant.dom :as r]
+            [main :as server]))
 
 (defn init []
   (js/console.log "running"))
-
+(str 1 1)
 (println "Hello world!")
 
 (def box (js/document.getElementById "box"))
@@ -17,3 +19,5 @@
                      (js/console.log "clacked!")))
 
 (.appendChild box (doto btn))
+
+

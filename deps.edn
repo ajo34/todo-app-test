@@ -1,5 +1,8 @@
-{:paths ["src"]
+{:paths ["src" "src/clojs"]
  :deps {org.clojure/clojure               {:mvn/version "1.12.0"}
+        ;Pedestal
+        io.pedestal/pedestal.jetty        {:mvn/version "0.7.2"}
+        org.slf4j/slf4j-simple            {:mvn/version "2.0.10"}
         ;PostgreSQL
         org.postgresql/postgresql         {:mvn/version "42.7.5"}
         ;jdbc
@@ -7,11 +10,11 @@
         com.h2database/h2                 {:mvn/version "2.2.224"}
         ;ClojureScript
         org.clojure/clojurescript         {:mvn/version "1.11.54"}
-        ;Pedestal
-        io.pedestal/pedestal.jetty        {:mvn/version "0.7.2"}
-        org.slf4j/slf4j-simple            {:mvn/version "2.0.10"}
         ;shadow-cljs
-        thheller/shadow-cljs {:mvn/version "2.28.23"}}
+        thheller/shadow-cljs {:mvn/version "2.28.23"}
+        ;portfolio
+        no.cjohansen/portfolio {:mvn/version "2025.01.28"}
+        no.cjohansen/replicant {:mvn/version "2025.02.02"}}
  :aliases
  {:shadow {:main-opts ["-m" "shadow.cljs.devtools.cli"]}}}
 

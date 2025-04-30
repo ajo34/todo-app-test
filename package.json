@@ -11,5 +11,8 @@
   "license": "ISC",
   "devDependencies": {
     "shadow-cljs": "^3.0.0"
+  },
+  "dependencies": {
+    "snabbdom": "3.5.1"
   }
 }

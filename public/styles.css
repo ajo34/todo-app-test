@@ -2,3 +2,12 @@
     background-color: black;
     color: #ffff;
 }
+
+#app {
+    margin: 20px;
+    border: solid cyan 2px
+}
+
+li {
+    border: solid rgb(126, 101, 62) 2px
+}
