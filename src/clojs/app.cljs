@@ -3,15 +3,18 @@
             [clojure.walk :as walk]
             [replicant.dom :as r-dom]))
 
-(defonce !state (atom nil))
+(def default-state {:list/todo-items {}})
+
+(defonce !state (atom default-state))
 
 (defn maybe-add [coll s]
   (let [trimmed (str/trim s)]
     (if (empty? s)
       coll
-      (conj coll {:item/title trimmed
-                  :item/completed? false
-                  :item/id (random-uuid)}))))
+      (assoc coll (random-uuid) {:item/title trimmed
+                                 :item/completed? false}))))
+
+
 
 (defn- display-view [{:something/keys [draft saved]}]
   [:div
@@ -21,27 +24,33 @@
     [:li {:replicant/key "saved"} "Saved: " saved]]])
 
 
-(defn- item-view [idx item]
-  [:li {:key idx} (str "item " item)])
+(defn- item-view [item]
+  (println "item:" item)
+  [:li {:key (first item)
+        :on {:click [[:db/newcomplete :list/todo-items (first item)]]}}
+   (str "item " (:item/title (last item)))])
+
+
+(def exap
+  {#uuid "d2f5fed7-d78b-4849-a912-328096052ca5" {:item/title "fghf", :item/completed? false},
+   #uuid "833fccd0-2030-4555-88bb-7c598100b13d" {:item/title "fghfd", :item/completed? false},
+   #uuid "6743cad2-d9df-4a02-b479-ed60f795714b" {:item/title "fghfdgds", :item/completed? false}})
 
 
 
-
-
-(defn- todo-list-wwview [{:keys [list/todo-items]}]
+(defn- todo-list-view [{:keys [list/todo-items]}]
   [:ul.todo-list
-   (map-indexed item-view todo-items)])
+   (map item-view todo-items)])
 
 (defn- main-view [state]
   [:div
    [:h1 "A tiny (and silly) Replicant example"]
    [:input {:on {:click [[:db/add :list/todo-items :event/target.value]
-                         ;[:db/assoc :something/draft :event/target.value]
-                         ]}}]
+                         [:db/assoc :something/draft :event/target.value]]}}]
    [:button {:on {:click [[:db/reset]]}} "RESET!"]
    (display-view state)
    [:h2 "list (real)"]
-   (todo-list-wwview state)])
+   (todo-list-view state)])
 
 (defn- render! [state]
   (r-dom/render
@@ -79,7 +88,28 @@
        :else x))
    action))
 
-(defn event-handler "Handles events and actions, and performs effects" [{:replicant/keys [^js js-event] :as replicant-data} actions]
+(defn getter [list id]
+  (filter #(= id (% :item/id)) list))
+
+(def testmap {:rand "rand"
+              :list [{:item/title "title"
+                      :item/completed? "false"
+                      :item/id "2"}
+                     {:item/title "title3"
+                      :item/completed? "falser"
+                      :item/id "3"}]})
+
+
+(assoc (first (getter [{:item/title "title"
+                        :item/completed? "false"
+                        :item/id "2"}
+                       {:item/title "title3"
+                        :item/completed? "falser"
+                        :item/id "3"}] "2")) :item/completed? "tru")
+
+
+(defn event-handler "Handles events and actions, and performs effects"
+  [{:replicant/keys [^js js-event] :as replicant-data} actions]
   (doseq [action actions] ;Iterates over every action
     (prn "action" action)
     ;Formats into [action-name, arguments]
@@ -90,12 +120,21 @@
       (prn "rich: " enriched-action "event: " js-event "state: " @!state)
       ;performs effects by action-name
       (case action-name
-        :db/add (swap! !state update (first args) conj (second args))
-        :db/reset (reset! !state nil)
+        :db/add (swap! !state update (first args) maybe-add (second args))
+        :db/reset (reset! !state default-state)
+        :db/delete (swap! !state remove   (first args))
+        :db/complete (swap! !state update (first args)
+                            (fn [list id]
+                              (println "AAA" list id (getter list id))
+                              (assoc (first (getter list id)) :item/completed? "true"))
+                            (second args))
+        :db/newcomplete (swap! !state assoc-in [(first args) (second args) :item/completed?] "true")
         :db/assoc (apply swap! !state assoc args)
         :db/dissoc (apply swap! !state dissoc args))))
   (prn "newstate" @!state)
   (render! @!state))
+
+(remove #(= % 2) (range 10))
 
 
 (defn ^:export init! []
