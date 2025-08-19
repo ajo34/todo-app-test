@@ -3,7 +3,8 @@
             [clojure.walk :as walk]
             [replicant.dom :as r-dom]))
 
-(def default-state {:list/todo-items {}})
+(def default-state {:list/todo-items {}
+                    :list/filter "All"})
 
 (defonce !state (atom default-state))
 
@@ -14,42 +15,55 @@
       (assoc coll (random-uuid) {:item/title trimmed
                                  :item/completed? false}))))
 
+(defn filter-items [todo-items filter-type]
+  (case filter-type
+    "All" todo-items
+    "Complete" (into {} (filter (fn [[_key val]] (:item/completed? val)) todo-items))
+    "Incomplete" (into {} (filter (fn [[_key val]] (not (:item/completed? val))) todo-items))
+    todo-items))
 
 
-(defn- display-view [{:something/keys [draft saved]}]
-  [:div
-   [:h2 "On display"]
-   [:ul
-    [:li {:replicant/key "draft"} "Draft: " draft]
-    [:li {:replicant/key "saved"} "Saved: " saved]]])
+
+(comment (defn- display-view [{:something/keys [draft saved]}]
+           [:div
+            [:h2 "On display"]
+            [:ul
+             [:li {:replicant/key "draft"} "Draft: " draft]
+             [:li {:replicant/key "saved"} "Saved: " saved]]]))
 
 
 (defn- item-view [item]
   (println "item:" item)
-  [:li {:key (first item)
-        :on {:click [[:db/newcomplete :list/todo-items (first item)]]}}
-   (str "item " (:item/title (last item)))])
+  [:li {:key (first item)}
+   [:input {:type :checkbox
+            :class "checkbox"
+            :checked (:item/completed? (last item))
+            :on {:click [[:actions/newcomplete :list/todo-items (first item) :event/target.checked]]}}]
+   [:p (:item/title (last item))]
+   [:button {:class "x"
+             :on {:click [[:actions/delete :list/todo-items (first item)]]}} "X"]])
 
 
-(def exap
-  {#uuid "d2f5fed7-d78b-4849-a912-328096052ca5" {:item/title "fghf", :item/completed? false},
-   #uuid "833fccd0-2030-4555-88bb-7c598100b13d" {:item/title "fghfd", :item/completed? false},
-   #uuid "6743cad2-d9df-4a02-b479-ed60f795714b" {:item/title "fghfdgds", :item/completed? false}})
-
-
-
-(defn- todo-list-view [{:keys [list/todo-items]}]
-  [:ul.todo-list
-   (map item-view todo-items)])
+(defn- todo-list-view [{:keys [list/todo-items list/filter]}]
+  [:div
+   [:h2 "list (real)"]
+   [:select {:value filter
+             :on {:change [[:actions/filter :list/filter :event/target.value]]}}
+    [:option "All"]
+    [:option "Incomplete"]
+    [:option "Complete"]]
+   [:ul.todo-list
+    (map item-view (filter-items todo-items filter))]])
 
 (defn- main-view [state]
   [:div
-   [:h1 "A tiny (and silly) Replicant example"]
-   [:input {:on {:click [[:db/add :list/todo-items :event/target.value]
-                         [:db/assoc :something/draft :event/target.value]]}}]
-   [:button {:on {:click [[:db/reset]]}} "RESET!"]
-   (display-view state)
-   [:h2 "list (real)"]
+   [:h1 "Replicant example"]
+   [:input {:on {:click [[:actions/add :list/todo-items :event/target.value]
+                         ;[:actions/assoc :something/draft :event/target.value]
+                         ]}}]
+   [:button {:on {:click [[:actions/reset]]}} "RESET!"]
+   ;(display-view state)
+
    (todo-list-view state)])
 
 (defn- render! [state]
@@ -73,6 +87,7 @@
      (cond
        (keyword? x) (case x
                       :event/target.value (-> js-event .-target .-value)
+                      :event/target.checked (-> js-event .-target .-checked)
                       :dom/node node
                       x)
        :else x))
@@ -84,28 +99,13 @@
    (fn [x]
      (cond
        (and (vector? x)
-            (= :db/get (first x))) (get state (second x))
+            (= :actions/get (first x))) (get state (second x))
        :else x))
    action))
 
-(defn getter [list id]
-  (filter #(= id (% :item/id)) list))
-
-(def testmap {:rand "rand"
-              :list [{:item/title "title"
-                      :item/completed? "false"
-                      :item/id "2"}
-                     {:item/title "title3"
-                      :item/completed? "falser"
-                      :item/id "3"}]})
 
 
-(assoc (first (getter [{:item/title "title"
-                        :item/completed? "false"
-                        :item/id "2"}
-                       {:item/title "title3"
-                        :item/completed? "falser"
-                        :item/id "3"}] "2")) :item/completed? "tru")
+
 
 
 (defn event-handler "Handles events and actions, and performs effects"
@@ -117,31 +117,54 @@
                                (enrich-action-from-event replicant-data)
                                (enrich-action-from-state @!state))
           [action-name & args] enriched-action]
-      (prn "rich: " enriched-action "event: " js-event "state: " @!state)
+      (prn "rich: " enriched-action  "event: " js-event "state: " @!state "args: " args)
       ;performs effects by action-name
       (case action-name
-        :db/add (swap! !state update (first args) maybe-add (second args))
-        :db/reset (reset! !state default-state)
-        :db/delete (swap! !state remove   (first args))
-        :db/complete (swap! !state update (first args)
-                            (fn [list id]
-                              (println "AAA" list id (getter list id))
-                              (assoc (first (getter list id)) :item/completed? "true"))
-                            (second args))
-        :db/newcomplete (swap! !state assoc-in [(first args) (second args) :item/completed?] "true")
-        :db/assoc (apply swap! !state assoc args)
-        :db/dissoc (apply swap! !state dissoc args))))
+        :actions/add (swap! !state update (first args) maybe-add (second args))
+        :actions/reset (reset! !state default-state)
+
+        :actions/assoc (apply swap! !state assoc args)
+        :actions/newcomplete (swap! !state assoc-in [(first args) (second args) :item/completed?] (last args))
+
+        :actions/filter (swap! !state assoc (first args) (second args))
+
+        :actions/delete (swap! !state update-in [(first args)] dissoc (second args)))))
   (prn "newstate" @!state)
   (render! @!state))
 
-(remove #(= % 2) (range 10))
-
-
 (defn ^:export init! []
-
-  ;(inspector/inspect "App state" db/!state)
+  ;(inspector/inspect "App state" actions/!state)
   (r-dom/set-dispatch! event-handler)
   ;(router/start! router/routes event-handler)
-           ;(db/watch! render!)
+  ;(actions/watch! render!)
   (start!))
 
+(comment
+  (def exap
+    {#uuid "d2f5fed7-d78b-4849-a912-328096052ca5" {:item/title "fghf", :item/completed? false},
+     #uuid "833fccd0-2030-4555-88bb-7c598100b13d" {:item/title "fghfd", :item/completed? false},
+     #uuid "6743cad2-d9df-4a02-b479-ed60f795714b" {:item/title "fghfdgds", :item/completed? false}})
+  (def testmap {:rand "rand"
+                :list [{:item/title "title"
+                        :item/completed? "false"
+                        :item/id "2"}
+                       {:item/title "title3"
+                        :item/completed? "falser"
+                        :item/id "3"}]})
+
+
+  (assoc (first (getter [{:item/title "title"
+                          :item/completed? "false"
+                          :item/id "2"}
+                         {:item/title "title3"
+                          :item/completed? "falser"
+                          :item/id "3"}] "2")) :item/completed? "tru")
+
+  (defn getter [list id]
+    (filter #(= id (% :item/id)) list))
+
+  (fn [args] :actions/complete (swap! !state update (first args)
+                                      (fn [list id]
+                                        (println "AAA" list id (getter list id))
+                                        (assoc (first (getter list id)) :item/completed? "true"))
+                                      (second args))))

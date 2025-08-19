@@ -1,13 +1,35 @@
 * {
-    background-color: black;
+    background-color: rgb(59, 57, 57);
     color: #ffff;
 }
 
 #app {
     margin: 20px;
-    border: solid cyan 2px
+
 }
 
 li {
-    border: solid rgb(126, 101, 62) 2px
+    border: solid rgb(126, 101, 62) 2px;
+    height: 60px;
+    font-size: 30;
+    display: flex;
+
+    align-items: center;
+}
+
+.checkbox {
+    height: 25px;
+    width: 25px;
+}
+
+p {
+    font-size: 20px;
+    font-family: monospace;
+}
+
+.x {
+    position: absolute;
+    right: 30px;
+    height: 60px;
+    width: 60px;
 }
