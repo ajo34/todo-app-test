@@ -13,13 +13,14 @@
     (if (empty? s)
       coll
       (assoc coll (random-uuid) {:item/title trimmed
-                                 :item/completed? false}))))
+                                 :item/completed? false
+                                 :item/editing? false}))))
 
 (defn filter-items [todo-items filter-type]
   (case filter-type
     "All" todo-items
-    "Complete" (into {} (filter (fn [[_key val]] (:item/completed? val)) todo-items))
-    "Incomplete" (into {} (filter (fn [[_key val]] (not (:item/completed? val))) todo-items))
+    "Completed" (into {} (filter (fn [[_key val]] (:item/completed? val)) todo-items))
+    "Active" (into {} (filter (fn [[_key val]] (not (:item/completed? val))) todo-items))
     todo-items))
 
 
@@ -34,34 +35,47 @@
 
 (defn- item-view [item]
   (println "item:" item)
-  [:li {:key (first item)}
-   [:input {:type :checkbox
-            :class "checkbox"
-            :checked (:item/completed? (last item))
-            :on {:click [[:actions/newcomplete :list/todo-items (first item) :event/target.checked]]}}]
-   [:p (:item/title (last item))]
-   [:button {:class "x"
-             :on {:click [[:actions/delete :list/todo-items (first item)]]}} "X"]])
+  (if (:item/editing? (last item))
+    [:li {:on {:dblclick [[:actions/edit :list/todo-items (first item) false]]}}
+     [:input {:value (:item/title (last item))
+              :class "edit"}]]
+    [:li {:key (first item)
+          :on {:dblclick [[:actions/edit :list/todo-items (first item) true]]}}
+     [:input {:type :checkbox
+              :class "checkbox"
+              :checked (:item/completed? (last item))
+              :on {:click [[:actions/newcomplete :list/todo-items (first item) :event/target.checked]]}}]
+     [:p
+      (:item/title (last item))]
+     [:button {:class "x"
+               :on {:click [[:actions/delete :list/todo-items (first item)]]}} "X"]]))
 
 
 (defn- todo-list-view [{:keys [list/todo-items list/filter]}]
   [:div
-   [:h2 "list (real)"]
-   [:select {:value filter
-             :on {:change [[:actions/filter :list/filter :event/target.value]]}}
-    [:option "All"]
-    [:option "Incomplete"]
-    [:option "Complete"]]
    [:ul.todo-list
-    (map item-view (filter-items todo-items filter))]])
+    (map item-view (filter-items todo-items filter))]
+   [:div [:p (let [n (count (filter-items todo-items "Active"))] (str n " Item" (if (= n 1) "" "s") " left"))]
+    [:select {:value filter
+              :on {:change [[:actions/filter :list/filter :event/target.value]]}}
+     [:option "All"]
+     [:option "Active"]
+     [:option "Completed"]]
+    [:button {:on {:click [[:actions/reset]]}} "RESET!"]]])
+
+(comment (let [completed-tasks (filter-items todo-items "Completed")]
+           (if (completed-tasks)
+             [:button {:on {:click [[:actions/delete :list/todo-items completed-tasks]]}} "Clear Completed"]
+             nil)))
 
 (defn- main-view [state]
-  [:div
-   [:h1 "Replicant example"]
-   [:input {:on {:click [[:actions/add :list/todo-items :event/target.value]
+  [:div.appapp
+   [:h1 "List"]
+   [:input.adder {:on {:click [[:actions/add :list/todo-items :event/target.value]
                          ;[:actions/assoc :something/draft :event/target.value]
-                         ]}}]
-   [:button {:on {:click [[:actions/reset]]}} "RESET!"]
+                               ]}}]
+
+
    ;(display-view state)
 
    (todo-list-view state)])
@@ -127,7 +141,7 @@
         :actions/newcomplete (swap! !state assoc-in [(first args) (second args) :item/completed?] (last args))
 
         :actions/filter (swap! !state assoc (first args) (second args))
-
+        :actions/edit (swap! !state assoc-in [(first args) (second args) :item/editing?] (last args))
         :actions/delete (swap! !state update-in [(first args)] dissoc (second args)))))
   (prn "newstate" @!state)
   (render! @!state))
