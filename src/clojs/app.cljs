@@ -1,12 +1,35 @@
 (ns clojs.app
   (:require [clojure.string :as str]
             [clojure.walk :as walk]
-            [replicant.dom :as r-dom]))
+            [replicant.dom :as r-dom]
+            [cognitect.transit :as t]))
+
+(defonce !state (atom nil))
 
 (def default-state {:list/todo-items {}
                     :list/filter "All"})
+(def storage-key "todo")
+(def persist-keys [:list/todo-items
+                   :list/filter])
 
-(defonce !state (atom default-state))
+(defn- load-persisted! []
+  (or (->> (.getItem js/localStorage storage-key)
+           (t/read (t/reader :json)))
+      default-state))
+
+(defn- persist! [state]
+  (.setItem js/localStorage storage-key (t/write (t/writer :json) (select-keys state persist-keys))))
+
+
+(defn watch! [render!]
+  (add-watch !state :persist (fn [_ _ old-state new-state]
+                               (when (not= old-state new-state)
+                                 (render! new-state)
+                                 (when (not= (select-keys old-state persist-keys)
+                                             (select-keys new-state persist-keys))
+                                   (persist! new-state))))))
+
+
 
 (defn maybe-add [coll s]
   (let [trimmed (str/trim s)]
@@ -16,12 +39,21 @@
                                  :item/completed? false
                                  :item/editing? false}))))
 
+
 (defn filter-items [todo-items filter-type]
   (case filter-type
     "All" todo-items
     "Completed" (into {} (filter (fn [[_key val]] (:item/completed? val)) todo-items))
     "Active" (into {} (filter (fn [[_key val]] (not (:item/completed? val))) todo-items))
     todo-items))
+
+(defn mark-all-as [items completed?]
+  (into {} (map (fn [[id item]] [id (assoc item :item/completed? completed?)]) items)))
+
+
+(defn all-complete? [items]
+  (every? true? (map #(:item/completed? %) (vals items))))
+
 
 
 
@@ -34,50 +66,58 @@
 
 
 (defn- item-view [item]
-  (println "item:" item)
+
   (if (:item/editing? (last item))
-    [:li {:on {:dblclick [[:actions/edit :list/todo-items (first item) false]]}}
+    [:li {:on {:dblclick [[:actions/assoc-in [:list/todo-items (first item) :item/title] :event/target.value]
+                          [:actions/assoc-in [:list/todo-items (first item) :item/editing?] false]]}}
      [:input {:value (:item/title (last item))
               :class "edit"}]]
+
     [:li {:key (first item)
-          :on {:dblclick [[:actions/edit :list/todo-items (first item) true]]}}
+          :on {:dblclick [[:actions/assoc-in [:list/todo-items (first item) :item/editing?] true]]}}
      [:input {:type :checkbox
               :class "checkbox"
               :checked (:item/completed? (last item))
-              :on {:click [[:actions/newcomplete :list/todo-items (first item) :event/target.checked]]}}]
+              :on {:click [[:actions/assoc-in [:list/todo-items (first item) :item/completed?] :event/target.checked]]}}]
      [:p
       (:item/title (last item))]
      [:button {:class "x"
-               :on {:click [[:actions/delete :list/todo-items (first item)]]}} "X"]]))
+               :on {:click [[:actions/delete :list/todo-items [(first item)]]]}} "X"]]))
 
 
 (defn- todo-list-view [{:keys [list/todo-items list/filter]}]
-  [:div
+  [:div#list-container
    [:ul.todo-list
     (map item-view (filter-items todo-items filter))]
-   [:div [:p (let [n (count (filter-items todo-items "Active"))] (str n " Item" (if (= n 1) "" "s") " left"))]
-    [:select {:value filter
-              :on {:change [[:actions/filter :list/filter :event/target.value]]}}
-     [:option "All"]
-     [:option "Active"]
-     [:option "Completed"]]
-    [:button {:on {:click [[:actions/reset]]}} "RESET!"]]])
 
-(comment (let [completed-tasks (filter-items todo-items "Completed")]
-           (if (completed-tasks)
-             [:button {:on {:click [[:actions/delete :list/todo-items completed-tasks]]}} "Clear Completed"]
-             nil)))
+   [:div#mark-all-container [:input#complete-all-box {:type "checkbox"
+                                                      :checked (all-complete? todo-items)
+                                                      :on {:click [[:actions/mark-all-as :list/todo-items :event/target.checked]]}}]
+    [:label "Mark all"]]
+   [:div#list-footer
+
+
+    [:p (let [n (count (filter-items todo-items "Active"))] (str n " Item" (if (= n 1) "" "s") " left"))]
+    [:select {:value filter
+              :on {:change [[:actions/assoc-in [:list/filter] :event/target.value]]}}
+     [:option {:value "All" :selected (= filter "All")} "All"]
+     [:option {:value "Active" :selected (= filter "Active")} "Active"]
+     [:option {:value "Completed" :selected (= filter "Completed")} "Completed"]]
+
+    [:button {:on {:click [[:actions/reset]]}} "RESET!"]
+
+    [:button {:on {:click [[:actions/delete :list/todo-items (keys (filter-items todo-items "Completed"))]]}}
+     "Clear completed"]]])
+
+
 
 (defn- main-view [state]
   [:div.appapp
    [:h1 "List"]
-   [:input.adder {:on {:click [[:actions/add :list/todo-items :event/target.value]
-                         ;[:actions/assoc :something/draft :event/target.value]
-                               ]}}]
 
+   [:input.adder {:on {:keyup [[:actions/add-on-enter :list/todo-items :event/target.value :event/key]]}}]
 
    ;(display-view state)
-
    (todo-list-view state)])
 
 (defn- render! [state]
@@ -89,8 +129,6 @@
 
 
 
-(defn ^{:dev/after-load true :export true} start! []
-  (render! @!state))
 
 
 
@@ -102,6 +140,7 @@
        (keyword? x) (case x
                       :event/target.value (-> js-event .-target .-value)
                       :event/target.checked (-> js-event .-target .-checked)
+                      :event/key (-> js-event .-key)
                       :dom/node node
                       x)
        :else x))
@@ -118,10 +157,6 @@
    action))
 
 
-
-
-
-
 (defn event-handler "Handles events and actions, and performs effects"
   [{:replicant/keys [^js js-event] :as replicant-data} actions]
   (doseq [action actions] ;Iterates over every action
@@ -131,54 +166,64 @@
                                (enrich-action-from-event replicant-data)
                                (enrich-action-from-state @!state))
           [action-name & args] enriched-action]
-      (prn "rich: " enriched-action  "event: " js-event "state: " @!state "args: " args)
+      (prn "rich: " enriched-action  "event: " js-event "args: " args)
       ;performs effects by action-name
       (case action-name
-        :actions/add (swap! !state update (first args) maybe-add (second args))
+        :actions/add-on-enter (when (= (last args) "Enter")
+                                (swap! !state update (first args) maybe-add (second args)))
         :actions/reset (reset! !state default-state)
-
-        :actions/assoc (apply swap! !state assoc args)
-        :actions/newcomplete (swap! !state assoc-in [(first args) (second args) :item/completed?] (last args))
-
-        :actions/filter (swap! !state assoc (first args) (second args))
-        :actions/edit (swap! !state assoc-in [(first args) (second args) :item/editing?] (last args))
-        :actions/delete (swap! !state update-in [(first args)] dissoc (second args)))))
+        :actions/delete (swap! !state update-in [(first args)] #(apply dissoc % (second args)))
+        :actions/assoc-in (swap! !state assoc-in (first args) (second args))
+        :actions/mark-all-as (swap! !state update (first args) mark-all-as (last args)))))
   (prn "newstate" @!state)
   (render! @!state))
 
+
+
+
+
+
+(defn ^{:dev/after-load true :export true} start! []
+  (render! @!state))
+
+
 (defn ^:export init! []
-  ;(inspector/inspect "App state" actions/!state)
+  (reset! !state (load-persisted!))
   (r-dom/set-dispatch! event-handler)
-  ;(router/start! router/routes event-handler)
-  ;(actions/watch! render!)
+  (watch! render!)
   (start!))
 
+
+
+
+
+
+
+
+
 (comment
-  (def exap
-    {#uuid "d2f5fed7-d78b-4849-a912-328096052ca5" {:item/title "fghf", :item/completed? false},
-     #uuid "833fccd0-2030-4555-88bb-7c598100b13d" {:item/title "fghfd", :item/completed? false},
-     #uuid "6743cad2-d9df-4a02-b479-ed60f795714b" {:item/title "fghfdgds", :item/completed? false}})
+
+  (def example
+    {#uuid "d2f5fed7-d78b-4849-a912-328096052ca5" {:item/title "fghf", :item/completed? true},
+     #uuid "833fccd0-2030-4555-88bb-7c598100b13d" {:item/title "fghfd", :item/completed? true},
+     #uuid "6743cad2-d9df-4a02-b479-ed60f795714b" {:item/title "fghfdgds", :item/completed? true}})
+
+
+  '(:actions/add (swap! !state update (first args) maybe-add (second args))
+                 :actions/filter (swap! !state assoc (first args) (second args))
+                 :actions/edit (swap! !state assoc-in [(first args) (second args) :item/editing?] (last args))
+                 :actions/completeedit (swap! !state assoc-in [(first args) (second args) :item/title] (last args))
+                 :actions/assoc (apply swap! !state assoc args)
+                 :actions/newcomplete (swap! !state assoc-in [(first args) (second args) :item/completed?] (last args)))
+
+
+
   (def testmap {:rand "rand"
-                :list [{:item/title "title"
-                        :item/completed? "false"
-                        :item/id "2"}
-                       {:item/title "title3"
-                        :item/completed? "falser"
-                        :item/id "3"}]})
-
-
-  (assoc (first (getter [{:item/title "title"
+                :list {0 {:item/title "title"
                           :item/completed? "false"
                           :item/id "2"}
-                         {:item/title "title3"
+                       1 {:item/title "title3"
                           :item/completed? "falser"
-                          :item/id "3"}] "2")) :item/completed? "tru")
-
-  (defn getter [list id]
-    (filter #(= id (% :item/id)) list))
-
-  (fn [args] :actions/complete (swap! !state update (first args)
-                                      (fn [list id]
-                                        (println "AAA" list id (getter list id))
-                                        (assoc (first (getter list id)) :item/completed? "true"))
-                                      (second args))))
+                          :item/id "3"}}})
+  (example)
+  (testmap))

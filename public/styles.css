@@ -5,12 +5,12 @@
 
 }
 
-#app {}
+
 
 .appapp {
-    text-align: center;
     width: 35%;
     margin: auto;
+
 }
 
 .adder {
@@ -21,7 +21,15 @@
     padding-left: 40px;
     font-size: 20px;
     box-sizing: border-box;
+    border-bottom: none;
 
+}
+
+#list-container {
+    border: 2px solid rgba(240, 255, 255, 0.355);
+    background-color: rgb(58, 60, 68);
+    align-items: center;
+    font-size: 20px
 }
 
 ul {
@@ -30,10 +38,11 @@ ul {
     flex-wrap: wrap;
     padding: 0;
     margin: 0;
+    background-color: rgb(59, 57, 57);
 }
 
 li {
-    border: solid rgb(116, 114, 110) 2px;
+    border-bottom: solid rgb(116, 114, 110) 2px;
     min-height: 60px;
     width: 100%;
     display: flex;
@@ -72,4 +81,57 @@ p {
     height: 100%;
     font-size: inherit;
     font-family: inherit;
+}
+
+#mark-all-container {
+    display: flex;
+
+
+    align-items: center;
+}
+
+#complete-all-box {
+    height: 40px;
+    width: 40px;
+    border-radius: 0px;
+}
+
+#list-footer {
+    background-color: rgb(58, 60, 68);
+    padding: 3px;
+    width: 100%;
+    justify-content: space-between;
+    display: flex;
+    height: 50px;
+    box-sizing: border-box;
+
+}
+
+#list-container>*,
+#list-container>div>* {
+    background-color: rgb(58, 60, 68);
+}
+
+input[type=checkbox] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border: 2px solid rgb(116, 114, 110);
+    border-radius: 50%;
+    background-color: transparent;
+    position: relative;
+}
+
+input[type=checkbox]:checked {
+    background-color: rgb(15, 119, 46);
+}
+
+input[type=checkbox]:checked::after {
+    content: '✓';
+    position: absolute;
+    color: white;
+    font-size: 20px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
 }
