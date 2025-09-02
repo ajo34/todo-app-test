@@ -57,21 +57,15 @@
 
 
 
-(comment (defn- display-view [{:something/keys [draft saved]}]
-           [:div
-            [:h2 "On display"]
-            [:ul
-             [:li {:replicant/key "draft"} "Draft: " draft]
-             [:li {:replicant/key "saved"} "Saved: " saved]]]))
-
 
 (defn- item-view [item]
 
   (if (:item/editing? (last item))
-    [:li {:on {:dblclick [[:actions/assoc-in [:list/todo-items (first item) :item/title] :event/target.value]
-                          [:actions/assoc-in [:list/todo-items (first item) :item/editing?] false]]}}
-     [:input {:value (:item/title (last item))
-              :class "edit"}]]
+    [:li [:input {:on {:blur [[:actions/assoc-in [:list/todo-items (first item) :item/title] :event/target.value]
+                              [:actions/assoc-in [:list/todo-items (first item) :item/editing?] false]]}
+                  :value (:item/title (last item))
+                  :class "edit"
+                  :autofocus true}]]
 
     [:li {:key (first item)
           :on {:dblclick [[:actions/assoc-in [:list/todo-items (first item) :item/editing?] true]]}}
@@ -115,7 +109,8 @@
   [:div.appapp
    [:h1 "List"]
 
-   [:input.adder {:on {:keyup [[:actions/add-on-enter :list/todo-items :event/target.value :event/key]]}}]
+   [:input.adder {:on {:keyup [[:actions/add-on-enter :list/todo-items :event/target.value :event/key]]}
+                  :autofocus true}]
 
    ;(display-view state)
    (todo-list-view state)])
@@ -124,10 +119,6 @@
   (r-dom/render
    (js/document.getElementById "app")
    (main-view state)))
-
-
-
-
 
 
 
@@ -152,7 +143,8 @@
    (fn [x]
      (cond
        (and (vector? x)
-            (= :actions/get (first x))) (get state (second x))
+            (= :actions/get (first x)))
+       (get state (second x))
        :else x))
    action))
 
@@ -177,8 +169,6 @@
         :actions/mark-all-as (swap! !state update (first args) mark-all-as (last args)))))
   (prn "newstate" @!state)
   (render! @!state))
-
-
 
 
 
